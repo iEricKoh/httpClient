@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type httpClient struct{ Config }
@@ -21,6 +22,14 @@ func Create(config *Config) *httpClient {
 
 func Get(url string, options *Options) (*Response, error) {
 	return client.Get(url, options)
+}
+
+func Post(url string, options *Options) (*Response, error) {
+	return client.Post(url, options)
+}
+
+func (h *httpClient) Post(url string, options *Options) (*Response, error) {
+	return h.DoRequest("POST", url, options)
 }
 
 func (h *httpClient) Get(url string, options *Options) (*Response, error) {
@@ -71,7 +80,23 @@ func (h *httpClient) createHttpRequest(method, url string, options *Options) (*h
 
 	header := h.populateHeader(options.Header)
 
-	req, err := http.NewRequest(method, u, nil)
+	req, err := func() (*http.Request, error) {
+		if method == "POST" {
+			if options.Form == nil {
+				options.Form = &Form{}
+			}
+
+			formBuilder := FormBuilder{Form: options.Form}
+			formData := formBuilder.BuildForm()
+
+			req, err := http.NewRequest("POST", u, strings.NewReader(formData.Encode()))
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+			return req, err
+		} else {
+			req, err := http.NewRequest(method, u, nil)
+			return req, err
+		}
+	}()
 
 	for key, val := range *header {
 		req.Header.Add(key, val)
