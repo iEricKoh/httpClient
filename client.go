@@ -44,6 +44,11 @@ func (h *httpClient) DoRequest(method, url string, options *Options) (*Response,
 	}
 
 	client := &http.Client{}
+
+	if options.Jar != nil {
+		client.Jar = options.Jar
+	}
+
 	resp, err := client.Do(req)
 
 	if err != nil {
