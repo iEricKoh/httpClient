@@ -72,6 +72,7 @@ func (h *httpClient) DoRequest(method, url string, options *Options) (*Response,
 		Header:        &resp.Header,
 		ContentLength: resp.ContentLength,
 		Request:       req,
+		Response:      resp,
 		Body:          body,
 	}, err
 }

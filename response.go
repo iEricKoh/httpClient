@@ -11,5 +11,6 @@ type Response struct {
 	Header        *http.Header
 	ContentLength int64
 	Request       *http.Request
+	Response      *http.Response
 	Body          []byte
 }
