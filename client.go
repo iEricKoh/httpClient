@@ -45,7 +45,7 @@ func (h *httpClient) DoRequest(method, url string, options *Options) (*Response,
 
 	client := &http.Client{}
 
-	if options.Jar != nil {
+	if options != nil && options.Jar != nil {
 		client.Jar = options.Jar
 	}
 
