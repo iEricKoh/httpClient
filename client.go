@@ -8,16 +8,22 @@ import (
 	"strings"
 )
 
-type httpClient struct{ Config }
+type httpClient struct{ *Config }
 
 var client *httpClient
 
 func createDefaultClient() *httpClient {
-	return &httpClient{}
+	return &httpClient{
+		&Config{},
+	}
 }
 
 func Create(config *Config) *httpClient {
-	return &httpClient{*config}
+	if config == nil {
+		return createDefaultClient()
+	}
+
+	return &httpClient{config}
 }
 
 func Get(url string, options *Options) (*Response, error) {
@@ -44,6 +50,10 @@ func (h *httpClient) DoRequest(method, url string, options *Options) (*Response,
 	}
 
 	client := &http.Client{}
+
+	if h.Timeout.String() != "0s" {
+		client.Timeout = h.Timeout
+	}
 
 	if options != nil && options.Jar != nil {
 		client.Jar = options.Jar
