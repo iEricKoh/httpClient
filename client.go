@@ -51,8 +51,12 @@ func (h *httpClient) DoRequest(method, url string, options *Options) (*Response,
 
 	client := &http.Client{}
 
-	if h.Timeout.String() != "0s" {
+	if h.Timeout.String() != "1ns" {
 		client.Timeout = h.Timeout
+	}
+
+	if h.Config != nil && h.Config.Jar != nil {
+		client.Jar = h.Config.Jar
 	}
 
 	if options != nil && options.Jar != nil {
