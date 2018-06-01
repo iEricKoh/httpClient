@@ -1,7 +1,9 @@
 package httpClient
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -26,6 +28,24 @@ func Create(config *Config) *httpClient {
 	return &httpClient{config}
 }
 
+func Pipe(url string, options *Options, w io.Writer) error {
+	resp, err := Get(url, options)
+
+	if err != nil {
+		return err
+	}
+
+	r := bytes.NewReader(resp.Body)
+
+	_, err = io.Copy(w, r)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Get(url string, options *Options) (*Response, error) {
 	return client.Get(url, options)
 }
@@ -42,6 +62,24 @@ func (h *httpClient) Get(url string, options *Options) (*Response, error) {
 	return h.DoRequest("GET", url, options)
 }
 
+func (h *httpClient) Pipe(url string, options *Options, w io.Writer) error {
+	resp, err := h.DoRequest("GET", url, options)
+
+	if err != nil {
+		return err
+	}
+
+	r := bytes.NewReader(resp.Body)
+
+	_, err = io.Copy(w, r)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (h *httpClient) DoRequest(method, url string, options *Options) (*Response, error) {
 	req, err := h.createHttpRequest(method, url, options)
 
@@ -51,7 +89,7 @@ func (h *httpClient) DoRequest(method, url string, options *Options) (*Response,
 
 	client := &http.Client{}
 
-	if h.Timeout.String() != "1ns" {
+	if h.Timeout.String() != "1s" {
 		client.Timeout = h.Timeout
 	}
 
