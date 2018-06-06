@@ -6,7 +6,9 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -139,17 +141,18 @@ func (h *httpClient) createHttpRequest(method, url string, options *Options) (*h
 	header := h.populateHeader(options.Header)
 
 	req, err := func() (*http.Request, error) {
+		contentType := "application/x-www-form-urlencoded"
+
+		if options.Header != nil && (*options.Header)["Content-Type"] != "" {
+			contentType = (*options.Header)["Content-Type"]
+		}
+
 		if method == "POST" {
-			if options.Form == nil {
-				options.Form = &Form{}
+			if contentType == "multipart/form-data" {
+				return doCreateMultipart(u, options)
 			}
 
-			formBuilder := FormBuilder{Form: options.Form}
-			formData := formBuilder.BuildForm()
-
-			req, err := http.NewRequest("POST", u, strings.NewReader(formData.Encode()))
-			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-			return req, err
+			return doCreateFormURLEncoded(u, options)
 		} else {
 			req, err := http.NewRequest(method, u, nil)
 			return req, err
@@ -169,6 +172,62 @@ func (h *httpClient) createHttpRequest(method, url string, options *Options) (*h
 
 		req.URL.RawQuery = q.Encode()
 	}
+
+	return req, err
+}
+
+func doCreateFormURLEncoded(url string, options *Options) (*http.Request, error) {
+	if options.Form == nil {
+		options.Form = &Form{}
+	}
+
+	formBuilder := FormBuilder{Form: options.Form}
+	formData := formBuilder.BuildForm()
+
+	req, err := http.NewRequest("POST", url, strings.NewReader(formData.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	return req, err
+}
+
+func doCreateMultipart(url string, options *Options) (*http.Request, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	if options != nil && options.Form != nil {
+		for key, value := range *options.Form {
+			if file, ok := value.(*os.File); ok {
+				part, err := writer.CreateFormFile(key, file.Name())
+
+				if err != nil {
+					return nil, err
+				}
+
+				_, err = io.Copy(part, file)
+
+				if err != nil {
+					return nil, err
+				}
+
+			} else if str, ok := value.(string); ok {
+				_ = writer.WriteField(key, str)
+			}
+		}
+
+		err := writer.Close()
+
+		if err != nil {
+			return nil, err
+		}
+
+		req, err := http.NewRequest("POST", url, body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+
+		return req, err
+	}
+
+	req, err := http.NewRequest("POST", url, body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	return req, err
 }

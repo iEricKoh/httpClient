@@ -10,7 +10,10 @@ func (f *FormBuilder) BuildForm() url.Values {
 	formData := url.Values{}
 
 	for key, value := range *f.Form {
-		formData.Set(key, value)
+		str, ok := value.(string)
+		if ok {
+			formData.Set(key, str)
+		}
 	}
 
 	return formData
