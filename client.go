@@ -56,12 +56,20 @@ func Post(url string, options *Options) (*Response, error) {
 	return client.Post(url, options)
 }
 
+func Delete(url string, options *Options) (*Response, error) {
+	return client.Delete(url, options)
+}
+
 func (h *httpClient) Post(url string, options *Options) (*Response, error) {
 	return h.DoRequest("POST", url, options)
 }
 
 func (h *httpClient) Get(url string, options *Options) (*Response, error) {
 	return h.DoRequest("GET", url, options)
+}
+
+func (h *httpClient) Delete(url string, options *Options) (*Response, error) {
+	return h.DoRequest("DELETE", url, options)
 }
 
 func (h *httpClient) Pipe(url string, options *Options, w io.Writer) error {
